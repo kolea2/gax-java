@@ -182,6 +182,13 @@ public class GrpcCallContextTest {
   }
 
   @Test
+  public void testWithOperationLevelTimeout() {
+    Duration timeout = Duration.ofSeconds(25);
+    GrpcCallContext context = GrpcCallContext.createDefault().withOperationLevelTimeout(timeout);
+    Truth.assertThat(context.getOperationLevelTimeout()).isEqualTo(timeout);
+  }
+
+  @Test
   public void testMergeWithNullStreamingWaitTimeout() {
     Duration timeout = Duration.ofSeconds(10);
     GrpcCallContext baseContext = GrpcCallContext.createDefault().withStreamWaitTimeout(timeout);
@@ -200,6 +207,14 @@ public class GrpcCallContextTest {
     Duration timeout = Duration.ZERO;
     Truth.assertThat(
             GrpcCallContext.createDefault().withStreamWaitTimeout(timeout).getStreamWaitTimeout())
+        .isEqualTo(timeout);
+  }
+
+  @Test
+  public void testWithZeroOperationLevelTimeout() {
+    Duration timeout = Duration.ZERO;
+    Truth.assertThat(
+            GrpcCallContext.createDefault().withOperationLevelTimeout(timeout).getOperationLevelTimeout())
         .isEqualTo(timeout);
   }
 

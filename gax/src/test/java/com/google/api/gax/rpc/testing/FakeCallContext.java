@@ -52,6 +52,7 @@ public class FakeCallContext implements ApiCallContext {
   private final Duration timeout;
   private final Duration streamWaitTimeout;
   private final Duration streamIdleTimeout;
+  private final Duration operationLevelTimeout;
   private final ImmutableMap<String, List<String>> extraHeaders;
   private final ApiTracer tracer;
 
@@ -61,6 +62,7 @@ public class FakeCallContext implements ApiCallContext {
       Duration timeout,
       Duration streamWaitTimeout,
       Duration streamIdleTimeout,
+      Duration operationLevelTimeout,
       ImmutableMap<String, List<String>> extraHeaders,
       ApiTracer tracer) {
     this.credentials = credentials;
@@ -68,13 +70,14 @@ public class FakeCallContext implements ApiCallContext {
     this.timeout = timeout;
     this.streamWaitTimeout = streamWaitTimeout;
     this.streamIdleTimeout = streamIdleTimeout;
+    this.operationLevelTimeout = operationLevelTimeout;
     this.extraHeaders = extraHeaders;
     this.tracer = tracer;
   }
 
   public static FakeCallContext createDefault() {
     return new FakeCallContext(
-        null, null, null, null, null, ImmutableMap.<String, List<String>>of(), null);
+        null, null, null, null, null, null, ImmutableMap.<String, List<String>>of(), null);
   }
 
   @Override
@@ -130,6 +133,11 @@ public class FakeCallContext implements ApiCallContext {
       newStreamIdleTimeout = streamIdleTimeout;
     }
 
+    Duration newOperationLevelTimeout = fakeCallContext.operationLevelTimeout;
+    if (newOperationLevelTimeout == null) {
+      newOperationLevelTimeout = operationLevelTimeout;
+    }
+
     ApiTracer newTracer = fakeCallContext.tracer;
     if (newTracer == null) {
       newTracer = this.tracer;
@@ -143,6 +151,7 @@ public class FakeCallContext implements ApiCallContext {
         newTimeout,
         newStreamWaitTimeout,
         newStreamIdleTimeout,
+        newOperationLevelTimeout,
         newExtraHeaders,
         newTracer);
   }
@@ -166,6 +175,38 @@ public class FakeCallContext implements ApiCallContext {
     return streamWaitTimeout;
   }
 
+  @Override
+  public ApiCallContext withOperationLevelTimeout(@Nullable Duration operationLevelTimeout) {
+    // Default RetrySettings use 0 for RPC timeout. Treat that as disabled timeouts.
+    if (operationLevelTimeout != null
+        && (operationLevelTimeout.isZero() || operationLevelTimeout.isNegative())) {
+      operationLevelTimeout = null;
+    }
+
+    // Prevent expanding operationLevelTimeouts
+    if (operationLevelTimeout != null
+        && this.operationLevelTimeout != null
+        && this.operationLevelTimeout.compareTo(operationLevelTimeout) <= 0) {
+      return this;
+    }
+
+    return new FakeCallContext(
+        this.credentials,
+        this.channel,
+        this.timeout,
+        this.streamWaitTimeout,
+        this.streamIdleTimeout,
+        operationLevelTimeout,
+        this.extraHeaders,
+        this.tracer);
+  }
+
+  @Nullable
+  @Override
+  public Duration getOperationLevelTimeout() {
+    return operationLevelTimeout;
+  }
+
   @Nullable
   @Override
   public Duration getStreamIdleTimeout() {
@@ -180,6 +221,7 @@ public class FakeCallContext implements ApiCallContext {
         this.timeout,
         this.streamWaitTimeout,
         this.streamIdleTimeout,
+        this.operationLevelTimeout,
         this.extraHeaders,
         this.tracer);
   }
@@ -202,6 +244,7 @@ public class FakeCallContext implements ApiCallContext {
         this.timeout,
         this.streamWaitTimeout,
         this.streamIdleTimeout,
+        this.operationLevelTimeout,
         this.extraHeaders,
         this.tracer);
   }
@@ -224,6 +267,7 @@ public class FakeCallContext implements ApiCallContext {
         timeout,
         this.streamWaitTimeout,
         this.streamIdleTimeout,
+        this.operationLevelTimeout,
         this.extraHeaders,
         this.tracer);
   }
@@ -236,6 +280,7 @@ public class FakeCallContext implements ApiCallContext {
         this.timeout,
         streamWaitTimeout,
         this.streamIdleTimeout,
+        this.operationLevelTimeout,
         this.extraHeaders,
         this.tracer);
   }
@@ -249,6 +294,7 @@ public class FakeCallContext implements ApiCallContext {
         this.timeout,
         this.streamWaitTimeout,
         streamIdleTimeout,
+        operationLevelTimeout,
         this.extraHeaders,
         this.tracer);
   }
@@ -264,6 +310,7 @@ public class FakeCallContext implements ApiCallContext {
         timeout,
         streamWaitTimeout,
         streamIdleTimeout,
+        operationLevelTimeout,
         newExtraHeaders,
         this.tracer);
   }
@@ -294,6 +341,7 @@ public class FakeCallContext implements ApiCallContext {
         this.timeout,
         this.streamWaitTimeout,
         this.streamIdleTimeout,
+        this.operationLevelTimeout,
         this.extraHeaders,
         tracer);
   }

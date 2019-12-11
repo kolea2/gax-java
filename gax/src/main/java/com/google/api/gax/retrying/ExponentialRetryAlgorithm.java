@@ -129,6 +129,7 @@ public class ExponentialRetryAlgorithm implements TimedRetryAlgorithm {
    */
   @Override
   public boolean shouldRetry(TimedAttemptSettings nextAttemptSettings) {
+    //todo this is total timeout
     RetrySettings globalSettings = nextAttemptSettings.getGlobalSettings();
     long totalTimeSpentNanos =
         clock.nanoTime()

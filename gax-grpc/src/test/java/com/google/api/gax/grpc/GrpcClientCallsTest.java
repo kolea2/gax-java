@@ -200,6 +200,45 @@ public class GrpcClientCallsTest {
   }
 
   @Test
+  public void testOperationLevelTimeoutDeadline() {
+    MethodDescriptor<Color, Money> descriptor = FakeServiceGrpc.METHOD_RECOGNIZE;
+
+    @SuppressWarnings("unchecked")
+    ClientCall<Color, Money> mockClientCall = Mockito.mock(ClientCall.class);
+
+    @SuppressWarnings("unchecked")
+    ClientCall.Listener<Money> mockListener = Mockito.mock(ClientCall.Listener.class);
+
+    @SuppressWarnings("unchecked")
+    Channel mockChannel = Mockito.mock(ManagedChannel.class);
+
+    ArgumentCaptor<CallOptions> capturedCallOptions = ArgumentCaptor.forClass(CallOptions.class);
+
+    Mockito.when(mockChannel.newCall(Mockito.eq(descriptor), capturedCallOptions.capture()))
+        .thenReturn(mockClientCall);
+
+    // Configure a timeout that occurs after the grpc deadline
+    Deadline priorDeadline = Deadline.after(5, TimeUnit.SECONDS);
+    Duration timeout = Duration.ofSeconds(10);
+    Duration operationLevelTimeout = Duration.ofSeconds(2);
+
+    Deadline operationLevelDeadline =
+        Deadline.after(operationLevelTimeout.toMillis(), TimeUnit.MILLISECONDS);
+
+    GrpcCallContext context =
+        GrpcCallContext.createDefault()
+            .withChannel(mockChannel)
+            .withCallOptions(CallOptions.DEFAULT.withDeadline(priorDeadline))
+            .withOperationLevelTimeout(operationLevelTimeout)
+            .withTimeout(timeout);
+
+    GrpcClientCalls.newCall(descriptor, context).start(mockListener, new Metadata());
+
+    // Verify that the timeout is ignored
+    Truth.assertThat(capturedCallOptions.getValue().getDeadline()).isEqualTo(operationLevelDeadline);
+  }
+
+  @Test
   public void testTimeoutBeforeDeadline() {
     MethodDescriptor<Color, Money> descriptor = FakeServiceGrpc.METHOD_RECOGNIZE;
 

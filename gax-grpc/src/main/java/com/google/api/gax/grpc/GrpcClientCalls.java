@@ -65,15 +65,33 @@ class GrpcClientCalls {
     Preconditions.checkNotNull(callOptions);
 
     // Try to convert the timeout into a deadline and use it if it occurs before the actual deadline
+    Deadline deadline = null;
+
     if (grpcContext.getTimeout() != null) {
       Deadline newDeadline =
           Deadline.after(grpcContext.getTimeout().toMillis(), TimeUnit.MILLISECONDS);
+
       Deadline oldDeadline = callOptions.getDeadline();
 
+      deadline = oldDeadline;
+
       if (oldDeadline == null || newDeadline.isBefore(oldDeadline)) {
-        callOptions = callOptions.withDeadline(newDeadline);
+        deadline = newDeadline;
       }
     }
+
+    if (grpcContext.getOperationLevelTimeout() != null) {
+      Deadline newOperationLevelTimeoutDeadline =
+          Deadline.after(grpcContext.getOperationLevelTimeout().toMillis(), TimeUnit.MILLISECONDS);
+
+      if (deadline == null || newOperationLevelTimeoutDeadline.isBefore(deadline)) {
+        deadline = newOperationLevelTimeoutDeadline;
+      }
+    }
+
+    //todo global?
+
+    callOptions = callOptions.withDeadline(deadline);
 
     Channel channel = grpcContext.getChannel();
     if (grpcContext.getChannelAffinity() != null && channel instanceof ChannelPool) {

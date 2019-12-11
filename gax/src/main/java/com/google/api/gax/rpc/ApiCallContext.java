@@ -102,6 +102,13 @@ public interface ApiCallContext extends RetryingContext {
   @Nullable
   Duration getStreamWaitTimeout();
 
+  @BetaApi("The surface for streaming is not stable yet and may change in the future.")
+  ApiCallContext withOperationLevelTimeout(@Nullable Duration operationLevelTimeout);
+
+  @BetaApi("The surface for streaming is not stable yet and may change in the future.")
+  @Nullable
+  Duration getOperationLevelTimeout();
+
   /**
    * Returns a new ApiCallContext with the given stream idle timeout set.
    *

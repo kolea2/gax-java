@@ -83,6 +83,19 @@ class AttemptCallable<RequestT, ResponseT> implements Callable<ResponseT> {
           .getTracer()
           .attemptStarted(externalFuture.getAttemptSettings().getOverallAttemptCount());
 
+      Duration operationLevelTimeout = callContext.getOperationLevelTimeout();
+
+      Duration minimumTimeout = getMinumumTimeout(operationLevelTimeout, rpcTimeout);
+
+      Duration globalTimeout =
+          externalFuture.getAttemptSettings().getGlobalSettings().getTotalTimeout();
+
+      Duration updatedMinimumTimeout = getMinumumTimeout(minimumTimeout, globalTimeout);
+
+      if (updatedMinimumTimeout != null) {
+        callContext = callContext.withTimeout(updatedMinimumTimeout);
+      }
+
       ApiFuture<ResponseT> internalFuture = callable.futureCall(request, callContext);
       externalFuture.setAttemptFuture(internalFuture);
     } catch (Throwable e) {
@@ -90,5 +103,12 @@ class AttemptCallable<RequestT, ResponseT> implements Callable<ResponseT> {
     }
 
     return null;
+  }
+
+  private Duration getMinumumTimeout(Duration timeout1, Duration timeout2) {
+    if (timeout1 != null && timeout1.compareTo(timeout2) < 0) {
+      return timeout1;
+    }
+    return timeout2;
   }
 }

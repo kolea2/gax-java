@@ -46,6 +46,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.threeten.bp.Duration;
+import org.threeten.bp.temporal.TemporalUnit;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AttemptCallableTest {
@@ -62,7 +63,7 @@ public class AttemptCallableTest {
 
     currentAttemptSettings =
         TimedAttemptSettings.newBuilder()
-            .setGlobalSettings(RetrySettings.newBuilder().build())
+            .setGlobalSettings(RetrySettings.newBuilder().setTotalTimeout(Duration.ofSeconds(10)).build())
             .setAttemptCount(0)
             .setOverallAttemptCount(0)
             .setFirstAttemptStartTimeNanos(0)
@@ -101,6 +102,24 @@ public class AttemptCallableTest {
         currentAttemptSettings.toBuilder().setRpcTimeout(longerTimeout).build();
     callable.call();
     assertThat(capturedCallContext.getValue().getTimeout()).isEqualTo(longerTimeout);
+  }
+
+
+  @Test
+  public void testOperationLevelDeadline() {
+    Duration operationLevelTimeout = Duration.ofMillis(10);
+    AttemptCallable<String, String> callable =
+        new AttemptCallable<>(mockInnerCallable, "fake-request", FakeCallContext.createDefault()
+            .withOperationLevelTimeout(operationLevelTimeout));
+    callable.setExternalFuture(mockExternalFuture);
+
+    // Make sure that the rpc timeout is set
+    Duration timeout = Duration.ofSeconds(10);
+    currentAttemptSettings = currentAttemptSettings.toBuilder().setRpcTimeout(timeout).build();
+
+    callable.call();
+
+    assertThat(capturedCallContext.getValue().getTimeout()).isEqualTo(operationLevelTimeout);
   }
 
   @Test

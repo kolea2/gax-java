@@ -71,19 +71,34 @@ public final class GrpcCallContext implements ApiCallContext {
   @Nullable private final Duration timeout;
   @Nullable private final Duration streamWaitTimeout;
   @Nullable private final Duration streamIdleTimeout;
+  @Nullable private final Duration operationLevelTimeout;
   @Nullable private final Integer channelAffinity;
   private final ImmutableMap<String, List<String>> extraHeaders;
 
   /** Returns an empty instance with a null channel and default {@link CallOptions}. */
   public static GrpcCallContext createDefault() {
     return new GrpcCallContext(
-        null, CallOptions.DEFAULT, null, null, null, null, ImmutableMap.<String, List<String>>of());
+        null,
+        CallOptions.DEFAULT,
+        null,
+        null,
+        null,
+        null,
+        null,
+        ImmutableMap.<String, List<String>>of());
   }
 
   /** Returns an instance with the given channel and {@link CallOptions}. */
   public static GrpcCallContext of(Channel channel, CallOptions callOptions) {
     return new GrpcCallContext(
-        channel, callOptions, null, null, null, null, ImmutableMap.<String, List<String>>of());
+        channel,
+        callOptions,
+        null,
+        null,
+        null,
+        null,
+        null,
+        ImmutableMap.<String, List<String>>of());
   }
 
   private GrpcCallContext(
@@ -92,6 +107,7 @@ public final class GrpcCallContext implements ApiCallContext {
       @Nullable Duration timeout,
       @Nullable Duration streamWaitTimeout,
       @Nullable Duration streamIdleTimeout,
+      @Nullable Duration operationLevelTimeout,
       @Nullable Integer channelAffinity,
       ImmutableMap<String, List<String>> extraHeaders) {
     this.channel = channel;
@@ -99,6 +115,7 @@ public final class GrpcCallContext implements ApiCallContext {
     this.timeout = timeout;
     this.streamWaitTimeout = streamWaitTimeout;
     this.streamIdleTimeout = streamIdleTimeout;
+    this.operationLevelTimeout = operationLevelTimeout;
     this.channelAffinity = channelAffinity;
     this.extraHeaders = Preconditions.checkNotNull(extraHeaders);
   }
@@ -161,6 +178,7 @@ public final class GrpcCallContext implements ApiCallContext {
         timeout,
         this.streamWaitTimeout,
         this.streamIdleTimeout,
+        this.operationLevelTimeout,
         this.channelAffinity,
         this.extraHeaders);
   }
@@ -184,6 +202,25 @@ public final class GrpcCallContext implements ApiCallContext {
         timeout,
         streamWaitTimeout,
         streamIdleTimeout,
+        this.operationLevelTimeout,
+        channelAffinity,
+        extraHeaders);
+  }
+
+  @Override
+  public GrpcCallContext withOperationLevelTimeout(@Nullable Duration operationLevelTimeout) {
+    if (operationLevelTimeout != null) {
+      Preconditions.checkArgument(
+          operationLevelTimeout.compareTo(Duration.ZERO) >= 0, "Invalid timeout: < 0 s");
+    }
+
+    return new GrpcCallContext(
+        channel,
+        callOptions,
+        timeout,
+        streamWaitTimeout,
+        streamIdleTimeout,
+        operationLevelTimeout,
         channelAffinity,
         extraHeaders);
   }
@@ -201,6 +238,7 @@ public final class GrpcCallContext implements ApiCallContext {
         timeout,
         streamWaitTimeout,
         streamIdleTimeout,
+        this.operationLevelTimeout,
         channelAffinity,
         extraHeaders);
   }
@@ -213,6 +251,7 @@ public final class GrpcCallContext implements ApiCallContext {
         timeout,
         streamWaitTimeout,
         streamIdleTimeout,
+        this.operationLevelTimeout,
         affinity,
         extraHeaders);
   }
@@ -229,6 +268,7 @@ public final class GrpcCallContext implements ApiCallContext {
         timeout,
         streamWaitTimeout,
         streamIdleTimeout,
+        this.operationLevelTimeout,
         channelAffinity,
         newExtraHeaders);
   }
@@ -280,6 +320,11 @@ public final class GrpcCallContext implements ApiCallContext {
       newStreamIdleTimeout = this.streamIdleTimeout;
     }
 
+    Duration operationLevelTimeout = grpcCallContext.operationLevelTimeout;
+    if (operationLevelTimeout == null) {
+      operationLevelTimeout = this.operationLevelTimeout;
+    }
+
     Integer newChannelAffinity = grpcCallContext.channelAffinity;
     if (newChannelAffinity == null) {
       newChannelAffinity = this.channelAffinity;
@@ -304,6 +349,7 @@ public final class GrpcCallContext implements ApiCallContext {
         newTimeout,
         newStreamWaitTimeout,
         newStreamIdleTimeout,
+        operationLevelTimeout,
         newChannelAffinity,
         newExtraHeaders);
   }
@@ -340,6 +386,12 @@ public final class GrpcCallContext implements ApiCallContext {
     return streamIdleTimeout;
   }
 
+  @BetaApi("The surface for streaming is not stable yet and may change in the future.")
+  @Nullable
+  public Duration getOperationLevelTimeout() {
+    return operationLevelTimeout;
+  }
+
   /** The channel affinity for this context. */
   @BetaApi("The surface for channel affinity is not stable yet and may change in the future.")
   @Nullable
@@ -362,6 +414,7 @@ public final class GrpcCallContext implements ApiCallContext {
         timeout,
         this.streamWaitTimeout,
         this.streamIdleTimeout,
+        this.operationLevelTimeout,
         this.channelAffinity,
         this.extraHeaders);
   }
@@ -374,6 +427,7 @@ public final class GrpcCallContext implements ApiCallContext {
         timeout,
         this.streamWaitTimeout,
         this.streamIdleTimeout,
+        this.operationLevelTimeout,
         this.channelAffinity,
         this.extraHeaders);
   }
